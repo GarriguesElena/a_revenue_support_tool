@@ -1,4 +1,2 @@
-streamlitpandas
-numpy
-matplotlib
-seabornscikit-learn pycountry
+streamlit==1.51.0pandas==2.3.3
+numpy==2.3.5scikit-learn==1.7.2 pycountry==26.2.16
