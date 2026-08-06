@@ -217,7 +217,7 @@ country_display = st.selectbox(
 )
 
 is_repeated_guest_label = st.selectbox(
-    "Guest type",
+    "Guest status",
     options=[
         "New Guest",
         "Repeated Guest"
@@ -259,7 +259,7 @@ else:
 
 
 customer_type = st.selectbox(
-    "Customer type",
+    "Guest type",
     options=[
         "Transient",
         "Transient-Party",
@@ -580,14 +580,14 @@ if submit_button:
 
     st.divider()
 
-    st.subheader("📊 Prediction")
+    st.subheader("🎯 Prediction")
 
-    col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns([1.3, 2])
 
     with col1:
 
         st.markdown(
-            "<p style='font-size:18px; margin-bottom:5px;'>Cancellation Probability</p>",
+            "<p style='font-size:18px; margin-bottom:5px;'>Estimated Cancellation Probability</p>",
             unsafe_allow_html=True
         )
 
@@ -611,19 +611,19 @@ if submit_button:
         if cancellation_probability < 0.30:
             st.success(
                 "🟢 **Low Risk**\n\n"
-                "This booking is unlikely to be cancelled."
+                "No immediate action is required"
             )
 
         elif cancellation_probability < 0.60:
             st.warning(
                 "🟡 **Medium Risk**\n\n"
-                "Consider a proactive follow-up."
+                "A proactive follow-up is recommended"
             )
 
         else:
             st.error(
                 "🔴 **High Risk**\n\n"
-                "This booking is likely to be cancelled."
+                "Immediate follow-up is recommended"
             )
     # -----------------------------------------------------
     # BUSINESS RECOMMENDATIONS
@@ -631,84 +631,91 @@ if submit_button:
 
     recommendations = []
 
+    # 1. Booking follow-up
+    booking_follow_up_reasons = []
 
-    # 1. Follow-up and confirmation
-    follow_up_reasons = []
+    # Only show risk indicators for high-risk bookings
+    if cancellation_probability >= 0.60:
 
-    if lead_time > 180:
-        follow_up_reasons.append(
-            "the booking was made more than 180 days in advance"
+        booking_follow_up_reasons.append(
+            "the predicted cancellation risk is high"
         )
+        if previous_cancellations > 0:
+            booking_follow_up_reasons.append(
+                "the guest has previous cancellations"
+            )
 
-    elif lead_time > 90:
-        follow_up_reasons.append(
-            "the booking has a long lead time"
-        )
+        if lead_time > 180:
+            booking_follow_up_reasons.append(
+                "the booking was made more than 180 days in advance"
+            )
 
-    if previous_cancellations > 0:
-        follow_up_reasons.append(
-            "the guest has previous cancellations"
-        )
+        elif lead_time > 90:
+            booking_follow_up_reasons.append(
+                "the booking has a long lead time"
+            )
 
-    if predicted_class == 1:
-        follow_up_reasons.append(
-            "the predicted cancellation risk"
-        )
+        if has_agent:
+            booking_follow_up_reasons.append(
+                "the booking was made through an agent"
+            )        
 
-    if follow_up_reasons:
-        recommendations.append(
-            {
-                "title": "Follow-up and confirmation",
-                "text": (
-                    "Contact the guest before arrival to reduce "
-                    "the risk of cancellation. This recommendation is based on "
-                    + ", ".join(follow_up_reasons)
-                    + "."
-                )
-            }
-        )
+        if market_segment == "Groups":
+            booking_follow_up_reasons.append(
+                "it belongs to the Groups market segment"
+            )
 
+        if total_of_special_requests == 0:
+            booking_follow_up_reasons.append(
+                "the booking has no special requests"
+            )
 
-    # 2. Booking conditions
-    booking_condition_reasons = []
-
+    # Define the main action according to deposit type
     if deposit_type == "No Deposit":
-        booking_condition_reasons.append(
-            "the reservation has no deposit"
+        booking_follow_up_action = (
+            "The reservation has no deposit when one is required. "
+            "Contact the guest as soon as possible to collect the required "
+            "deposit and confirm the booking."
         )
 
-    if market_segment == "Groups":
-        booking_condition_reasons.append(
-            "it belongs to the Groups market segment"
+    elif deposit_type == "Non Refund":
+        booking_follow_up_action = (
+            "The reservation is non-refundable. Contact the guest as soon "
+            "as possible to collect the required deposit and confirm the booking."
         )
 
-    if total_of_special_requests == 0:
-        booking_condition_reasons.append(
-            "the booking has no special requests"
-        )
-
-    if booking_condition_reasons:
-        recommendations.append(
-            {
-                "title": "Review booking conditions",
-                "text": (
-                    "Review the confirmation or deposit conditions "
-                    "for this reservation. Relevant factors include "
-                    + ", ".join(booking_condition_reasons)
-                    + "."
-                )
-            }
+    else:
+        booking_follow_up_action = (
+            "The reservation is refundable. Contact the guest shortly before "
+            "the arrival date to confirm the booking."
         )
 
 
-    # 3. Guest relationship
+    # Add one Booking follow-up recommendation for every booking
+    recommendation_text = booking_follow_up_action
+
+    if booking_follow_up_reasons:
+        recommendation_text += (
+            " **Key risk indicators:** "
+            + ", ".join(booking_follow_up_reasons)
+            + "."
+        )
+
+    recommendations.append(
+        {
+            "title": "Booking follow-up",
+            "text": recommendation_text
+        }
+    )
+    
+    # 2. Guest loyalty
     if is_repeated_guest == 1:
         recommendations.append(
             {
                 "title": "Guest loyalty",
                 "text": (
-                    "This is a repeated guest. Maintain a personalized "
-                    "loyalty approach."
+                    "This is a repeated guest. Use a personalized "
+                    "communication to reinforce guest loyalty."
                 )
             }
         )
@@ -719,8 +726,7 @@ if submit_button:
 
     if recommendations:
         icons = {
-            "Follow-up and confirmation": "📞",
-            "Review booking conditions": "📋",
+            "Booking follow-up": "📞",
             "Guest loyalty": "⭐"
         }
 
@@ -742,8 +748,12 @@ if submit_button:
                 )
 
     else:
-
         st.success(
             "No specific preventive action was identified "
             "for this booking."
         )
+    st.caption(
+        "ℹ️ **Disclaimer:** This prediction is intended to support "
+        "decision-making and should be interpreted together with "
+        "operational knowledge and professional judgment."
+)
