@@ -318,7 +318,10 @@ reserved_room_type = st.selectbox(
         "G",
         "H",
         "L"
-    ]
+    ],
+    help=("Room type code used by the source hotel dataset. "
+          "Codes represent anonymized room categories."
+    )
 )
 
 deposit_type = st.selectbox(
@@ -614,7 +617,7 @@ if submit_button:
                 "No immediate action is required"
             )
 
-        elif cancellation_probability < 0.60:
+        elif cancellation_probability < 0.70:
             st.warning(
                 "🟡 **Medium Risk**\n\n"
                 "A proactive follow-up is recommended"
