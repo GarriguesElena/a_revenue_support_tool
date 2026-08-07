@@ -142,7 +142,7 @@ st.write(
     cancelled using the information available at the time of reservation.
 
     The prediction is intended to support management decisions and should
-    not replace professional judgement."
+    not replace professional judgement.
     """
 )
 
@@ -165,7 +165,7 @@ hotel = st.selectbox(
 )
 
 lead_time = st.slider(
-    "Lead time (days)",
+    "Lead time (how many days in advance the reservation was made)",
     min_value=0,
     max_value=1000,
     value=30,
@@ -182,7 +182,7 @@ with col1:
 
 with col2:
     check_out = st.date_input(
-        "Check Out",
+        "Check Out (must be after Check In date)",
         value=date.today() + timedelta(days=1)
     )
 
@@ -191,21 +191,21 @@ with col2:
 st.markdown("### 👤 Guest Information")
 
 adults = st.number_input(
-    "Adults",
+    "Adults (maximum of 10 adults)",
     min_value=1,
     value=2,
     step=1
 )
 
 children = st.number_input(
-    "Children",
+    "Children (maximum of 9 children)",
     min_value=0,
     value=0,
     step=1
 )
 
 babies = st.number_input(
-    "Babies",
+    "Babies (maximum of 5 babies)",
     min_value=0,
     value=0,
     step=1
@@ -231,7 +231,7 @@ is_repeated_guest = (
 if is_repeated_guest_label == "Repeated Guest":
 
     previous_cancellations = st.number_input(
-        "Previous cancellations",
+        "Previous cancellations (maximum of 26 previous cancellations)",
         min_value=0,
         value=0,
         step=1
@@ -243,7 +243,7 @@ if is_repeated_guest_label == "Repeated Guest":
     )
 
     previous_bookings_not_canceled = st.number_input(
-        "Previous bookings not cancelled",
+        "Previous bookings not cancelled (maximum of 72 previous bookings not cancelled)",
         min_value=0,
         value=1,
         step=1
@@ -257,90 +257,44 @@ else:
     previous_cancellations = 0
     previous_bookings_not_canceled = 0
 
-
-customer_type = st.selectbox(
-    "Guest type",
-    options=[
-        "Transient",
-        "Transient-Party",
-        "Contract",
-        "Group"
-    ]
-)
-
 # Booking information
 st.markdown("### 🛏️ Booking Details")
 
-meal = st.selectbox(
-    "Meal plan",
+market_segment_display = st.selectbox(
+    "Booking Channel",
     options=[
-        "Bed & Breakfast",
-        "Half Board",
-        "Room Only",
-        "Full Board"
-    ],
-)
-
-market_segment = st.selectbox(
-    "Market segment",
-    options=[
-        "Online TA",
-        "Offline TA/TO",
+        "Online Travel Agency (OTA)",
+        "Offline Travel Agency / Tour Operator",
         "Groups",
-        "Direct",
+        "Direct Booking",
         "Corporate",
-        "Complementary",
-        "Aviation",
-        "Unknown"
+        "Complimentary",
+        "Aviation"
     ]
 )
 
-distribution_channel = st.selectbox(
-    "Distribution channel",
-    options=[
-        "TA/TO",
-        "Direct",
-        "Corporate",
-        "GDS",
-        "Unknown"
-    ]
-)
+market_segment_mapping = {
+    "Online Travel Agency (OTA)": "Online TA",
+    "Offline Travel Agency / Tour Operator": "Offline TA/TO",
+    "Direct Booking": "Direct",
+    "Corporate": "Corporate",
+    "Groups": "Groups",
+    "Complimentary": "Complementary",
+    "Aviation": "Aviation",
+}
 
-reserved_room_type = st.selectbox(
-    "Reserved room type",
-    options=[
-        "A",
-        "B",
-        "C",
-        "D",
-        "E",
-        "F",
-        "G",
-        "H",
-        "L"
-    ],
-    help=("Room type code used by the source hotel dataset. "
-          "Codes represent anonymized room categories."
-    )
-)
+market_segment = market_segment_mapping[market_segment_display]
 
-deposit_type = st.selectbox(
-    "Deposit type",
-    options=[
-        "No Deposit",
-        "Non Refund",
-        "Refundable"
-    ]
-)
-
-adr = st.number_input(
-    "Average Daily Rate (ADR)",
-    value=100.0,
-    step=1.0
+adr = st.slider(
+    "Room Average Daily Rate (ADR)",
+    min_value=0,
+    max_value=5400,
+    value=100,
+    step=1
 )
 
 required_car_parking_spaces = st.number_input(
-    "Required car parking spaces",
+    "Required car parking spaces (maximum of 8 parking spaces)",
     min_value=0,
     value=0,
     step=1
@@ -354,7 +308,7 @@ if required_car_parking_spaces > 8:
 
     
 total_of_special_requests = st.number_input(
-    "Number of special requests",
+    "Number of special requests (maximum of 5 special requests)",
     min_value=0,
     value=0,
     step=1
@@ -469,18 +423,6 @@ if submit_button:
         )
         st.stop()
 
-    if meal == "Bed & Breakfast":
-        meal = "BB"
-
-    elif meal == "Half Board":
-        meal = "HB"
-
-    elif meal == "Room Only":
-        meal = "SC"
-
-    else:
-        meal = "FB"
-
     # -------------------------
     # Create booking DataFrame
     # -------------------------
@@ -502,12 +444,8 @@ if submit_button:
             "adults": [adults],
             "children": [children],
             "babies": [babies],
-            "meal": [meal],
             "country": [country],
             "market_segment": [market_segment],
-            "distribution_channel": [
-                distribution_channel
-            ],
             "is_repeated_guest": [
                 is_repeated_guest
             ],
@@ -517,13 +455,8 @@ if submit_button:
             "previous_bookings_not_canceled": [
                 previous_bookings_not_canceled
             ],
-            "reserved_room_type": [
-                reserved_room_type
-            ],
-            "deposit_type": [deposit_type],
             "has_agent": [int(has_agent)],
             "has_company": [int(has_company)],
-            "customer_type": [customer_type],
             "adr": [adr],
             "required_car_parking_spaces": [
                 required_car_parking_spaces
@@ -634,129 +567,142 @@ if submit_button:
 
     recommendations = []
 
+
     # 1. Booking follow-up
     booking_follow_up_reasons = []
 
-    # Only show risk indicators for high-risk bookings
-    if cancellation_probability >= 0.60:
 
-        booking_follow_up_reasons.append(
-            "the predicted cancellation risk is high"
+    # Define main recommendation according to cancellation risk
+    if cancellation_probability < 0.30:
+
+        recommendation_text = (
+            "No immediate follow-up is required."
         )
+
+
+    elif cancellation_probability < 0.70:
+
+        recommendation_text = (
+            "Consider contacting the guest before arrival "
+            "to reconfirm the reservation."
+        )
+
+        risk_level = "Medium"
+
+
+    else:
+
+        recommendation_text = (
+            "Contact the guest proactively to reconfirm the reservation "
+            "and reinforce the booking commitment."
+        )
+
+        risk_level = "High"
+
+
+    # Add indicators and actions for Medium and High risk
+    if cancellation_probability >= 0.30:
+
         if previous_cancellations > 0:
             booking_follow_up_reasons.append(
-                "the guest has previous cancellations"
+                "The guest has previous cancellations. "
+                "Review guest's previous reservations."
             )
 
         if lead_time > 180:
             booking_follow_up_reasons.append(
-                "the booking was made more than 180 days in advance"
+                "The booking was made more than 180 days in advance."
             )
 
         elif lead_time > 90:
             booking_follow_up_reasons.append(
-                "the booking has a long lead time"
+                "The booking has a long lead time."
             )
 
         if has_agent:
             booking_follow_up_reasons.append(
-                "the booking was made through an agent"
-            )        
+                "The booking was made through an agent."
+            )
 
         if market_segment == "Groups":
             booking_follow_up_reasons.append(
-                "it belongs to the Groups market segment"
+                "The booking is part of a group reservation. "
+                "Consider confirming the reservation details with the group organizer."
             )
 
         if total_of_special_requests == 0:
             booking_follow_up_reasons.append(
-                "the booking has no special requests"
+                "The booking has no special requests."
             )
 
-    # Define the main action according to deposit type
-    if deposit_type == "No Deposit":
-        booking_follow_up_action = (
-            "The reservation has no deposit when one is required. "
-            "Contact the guest as soon as possible to collect the required "
-            "deposit and confirm the booking."
+        # Add key risk indicators
+        if booking_follow_up_reasons:
+
+            recommendation_text += (
+                "\n\n**Key risk indicators**\n"
+            )
+
+            for reason in booking_follow_up_reasons:
+                recommendation_text += f"- {reason}\n"
+
+    # Add Booking follow-up card
+    if cancellation_probability >= 0.30:
+
+        recommendations.append(
+            {
+                "title": "Booking follow-up",
+                "text": recommendation_text
+            }
         )
 
-    elif deposit_type == "Non Refund":
-        booking_follow_up_action = (
-            "The reservation is non-refundable. Contact the guest as soon "
-            "as possible to collect the required deposit and confirm the booking."
-        )
-
-    else:
-        booking_follow_up_action = (
-            "The reservation is refundable. Contact the guest shortly before "
-            "the arrival date to confirm the booking."
-        )
-
-
-    # Add one Booking follow-up recommendation for every booking
-    recommendation_text = booking_follow_up_action
-
-    if booking_follow_up_reasons:
-        recommendation_text += (
-            " **Key risk indicators:** "
-            + ", ".join(booking_follow_up_reasons)
-            + "."
-        )
-
-    recommendations.append(
-        {
-            "title": "Booking follow-up",
-            "text": recommendation_text
-        }
-    )
-    
     # 2. Guest loyalty
-    if is_repeated_guest == 1:
+    if previous_bookings_not_canceled > 0:
         recommendations.append(
             {
                 "title": "Guest loyalty",
                 "text": (
-                    "This is a repeated guest. Use a personalized "
-                    "communication to reinforce guest loyalty."
+                    "This guest has successfully completed previous stays. "
+                    "Consider personalized communication to reinforce guest loyalty."
                 )
             }
         )
 
 
     # Show recommendations
-    st.subheader("💡 Business Recommendations")
-
     if recommendations:
-        icons = {
-            "Booking follow-up": "📞",
-            "Guest loyalty": "⭐"
-        }
 
-        for recommendation in recommendations:
+        st.subheader("💡 Recommended Actions")
 
-            with st.container(border=True):
+        if recommendations:
+            icons = {
+                "Booking follow-up": "📞",
+                "Guest loyalty": "⭐"
+            }
 
-                icon = icons.get(
-                    recommendation["title"],
-                    "💡"
-                )
+            for recommendation in recommendations:
 
-                st.markdown(
-                    f"**{icon} {recommendation['title']}**"
-                )
+                with st.container(border=True):
 
-                st.write(
-                    recommendation["text"]
-                )
+                    icon = icons.get(
+                        recommendation["title"],
+                        "💡"
+                    )
 
-    else:
-        st.success(
-            "No specific preventive action was identified "
-            "for this booking."
-        )
-    st.caption(
-        "ℹ️ **Disclaimer:** This prediction is intended to support "
-        "decision-making and should be interpreted together with "
-        "operational knowledge and professional judgment."
-)
+                    st.markdown(
+                        f"**{icon} {recommendation['title']}**"
+                    )
+
+                    st.markdown(
+                        recommendation["text"]
+                    )
+
+        else:
+            st.success(
+                "No specific preventive action was identified "
+                "for this booking."
+            )
+        st.caption(
+            "ℹ️ **Disclaimer:** This prediction is intended to support "
+            "decision-making and should be interpreted together with "
+            "operational knowledge and professional judgment."
+    )
