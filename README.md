@@ -81,18 +81,12 @@ The problem was approached as a **binary classification task**:
 
 Two models were compared:
 
-  -----------------------------------------------------------------------------
-  Model            Accuracy    Precision       Recall     F1 Score      ROC-AUC
-  ------------ ------------ ------------ ------------ ------------ ------------
-  Logistic            0.805        0.777        0.664        0.716        0.878
-  Regression                                                       
+| Model | Accuracy | Precision | Recall | F1 Score | ROC-AUC |
+|---|---:|---:|---:|---:|---:|
+| Logistic Regression | 0.805 | 0.777 | 0.664 | 0.716 | 0.878 |
+| **Random Forest** | **0.884** | **0.881** | **0.796** | **0.836** | **0.953** |
 
-  Random             **0.884**    **0.881**    **0.796**    **0.836**    **0.953**
-  Forest                                                         
-  -----------------------------------------------------------------------------
-
-The **Random Forest** was selected as the final model because it
-provided the strongest overall performance.
+The **Random Forest** was selected as the final model because it provided the strongest overall performance.
 
 Its ROC-AUC of **0.953** shows a strong ability to distinguish between
 cancelled and non-cancelled bookings.
